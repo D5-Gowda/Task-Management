@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+            display: inline-block;
+            width: 80%;
+        }
+        input, select, button, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: #ddd;
+        }
+        #taskSection, #employeeSection {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="loginSection">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<div class="container" id="taskSection">
+    <h2>Admin Panel - Assign Tasks</h2>
+    <input type="text" id="taskName" placeholder="Task Name">
+    <select id="employeeSelect">
+        <option value="employee1">Employee 1</option>
+        <option value="employee2">Employee 2</option>
+        <option value="employee3">Employee 3</option>
+    </select>
+    <input type="date" id="taskDeadline">
+    <button onclick="assignTask()">Assign Task</button>
+
+    <h3>Assigned Tasks</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Assigned To</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Progress History</th>
+            </tr>
+        </thead>
+        <tbody id="adminTaskList"></tbody>
+    </table>
+
+    <button onclick="logout()">Logout</button>
+</div>
+
+<div class="container" id="employeeSection">
+    <h2>Employee Panel - Update Tasks</h2>
+    <h3>Your Assigned Tasks</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>New Update</th>
+                <th>Action</th>
+                <th>Update History</th>
+            </tr>
+        </thead>
+        <tbody id="employeeTaskList"></tbody>
+    </table>
+    <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+    let users = {
+        "admin": "admin123",
+        "employee1": "emp123",
+        "employee2": "emp456",
+        "employee3": "emp789"
+    };
+
+    let tasks = [];
+
+    function login() {
+        let username = document.getElementById("username").value.trim().toLowerCase();
+        let password = document.getElementById("password").value.trim();
+
+        if (users.hasOwnProperty(username) && users[username] === password) {
+            document.getElementById("loginSection").style.display = "none";
+
+            if (username === "admin") {
+                document.getElementById("taskSection").style.display = "block";
+                loadTasksAdmin();
+            } else {
+                document.getElementById("employeeSection").style.display = "block";
+                loadTasksEmployee(username);
+            }
+        } else {
+            alert("Invalid Username or Password! Try again.");
+        }
+    }
+
+    function logout() {
+        document.getElementById("loginSection").style.display = "block";
+        document.getElementById("taskSection").style.display = "none";
+        document.getElementById("employeeSection").style.display = "none";
+    }
+
+    function assignTask() {
+        let taskName = document.getElementById("taskName").value.trim();
+        let employee = document.getElementById("employeeSelect").value;
+        let deadline = document.getElementById("taskDeadline").value;
+
+        if (taskName && deadline) {
+            tasks.push({ name: taskName, assignedTo: employee, status: "Pending", deadline: deadline, progressHistory: [] });
+            document.getElementById("taskName").value = "";
+            document.getElementById("taskDeadline").value = "";
+            loadTasksAdmin();
+        } else {
+            alert("Please enter a task name and select a deadline.");
+        }
+    }
+
+    function loadTasksAdmin() {
+        let adminTaskList = document.getElementById("adminTaskList");
+        adminTaskList.innerHTML = "";
+        tasks.forEach(task => {
+            let historyTable = task.progressHistory.length > 0 ? 
+                `<table><tr><th>Date</th><th>Update</th></tr>` +
+                task.progressHistory.map(entry => `<tr><td>${entry.date}</td><td>${entry.text}</td></tr>`).join("") + 
+                `</table>` : "No updates yet";
+            
+            adminTaskList.innerHTML += `
+                <tr>
+                    <td>${task.name}</td>
+                    <td>${task.assignedTo.toUpperCase()}</td>
+                    <td>${task.deadline}</td>
+                    <td>${task.status}</td>
+                    <td>${historyTable}</td>
+                </tr>`;
+        });
+    }
+
+    function loadTasksEmployee(employee) {
+        let employeeTaskList = document.getElementById("employeeTaskList");
+        employeeTaskList.innerHTML = "";
+
+        tasks.filter(task => task.assignedTo === employee).forEach((task, index) => {
+            let disabled = task.status === "Completed" ? "disabled" : "";
+            let historyTable = task.progressHistory.length > 0 ? 
+                `<table><tr><th>Date</th><th>Update</th></tr>` +
+                task.progressHistory.map(entry => `<tr><td>${entry.date}</td><td>${entry.text}</td></tr>`).join("") + 
+                `</table>` : "No updates yet";
+
+            employeeTaskList.innerHTML += `
+                <tr>
+                    <td>${task.name}</td>
+                    <td>${task.deadline}</td>
+                    <td>
+                        <select id="statusSelect${index}" onchange="updateTaskStatus(${index})" ${disabled}>
+                            <option value="Pending" ${task.status === "Pending" ? "selected" : ""}>Pending</option>
+                            <option value="In Progress" ${task.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                            <option value="Completed" ${task.status === "Completed" ? "selected" : ""}>Completed</option>
+                        </select>
+                    </td>
+                    <td><textarea id="progressText${index}" ${disabled}></textarea></td>
+                    <td><button onclick="saveProgress(${index})" ${disabled}>Save</button></td>
+                    <td>${historyTable}</td>
+                </tr>`;
+        });
+    }
+
+    function saveProgress(index) {
+        let task = tasks[index];
+        let newUpdate = document.getElementById(`progressText${index}`).value.trim();
+        let currentDate = new Date().toISOString().split("T")[0];
+
+        if (newUpdate) {
+            task.progressHistory.push({ date: currentDate, text: newUpdate });
+            loadTasksEmployee(task.assignedTo);
+            loadTasksAdmin();
+        } else {
+            alert("Please enter a progress update.");
+        }
+    }
+</script>
+
+</body>
+</html>
